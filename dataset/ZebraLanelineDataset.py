@@ -6,23 +6,22 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-class BagDataset(Dataset):
+class ZebraLanelineDataset(Dataset):
     '''
-    背包数据集，共600对图像数据，图像大小不等，mask的像素值共两类，其中0表示背包，255表示背景，存在0～255中间值
-    将mask的128～255值设定为label：0，mask的0～127值设定为label：1
-
+    斑马胶带车道线数据集，mask的像素值共两类，其中0表示背景，[128, 0, 0]红色表示车道线，不存在其他值
+    将mask的0值设定为label：0，mask的[128, 0, 0]值设定为label：1
     '''
 
-    def __init__(self, resize = (160, 160)):
+    def __init__(self, resize = (320, 160)):
         # set path
         self.project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.data_path = os.path.join(self.project_path, 'data', 'bag')
-        self.images_path = os.path.join(self.data_path, 'images')
-        self.masks_path = os.path.join(self.data_path, 'masks')
+        self.data_path = '/home/chenyp/dataset/zebra_laneline/pool'
+        self.images_path = os.path.join(self.data_path, 'raw')
+        self.masks_path = os.path.join(self.data_path, 'mask_class')
         # set images and masks name list
         self.images_list = os.listdir(self.images_path)
         self.masks_list = os.listdir(self.masks_path)
-        assert len(self.images_list) == len(self.masks_list)
+        #assert len(self.images_list) == len(self.masks_list)
         # set transform
         self.images_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         self.masks_transform = None
@@ -32,13 +31,14 @@ class BagDataset(Dataset):
             assert len(self.resize) == 2
 
     def __len__(self):
-        return len(self.images_list)
+        return len(self.masks_list)
 
     def __getitem__(self, idx):
         # read signle image and mask
-        image_name = self.images_list[idx]
+        mask_name = self.masks_list[idx]
+        image_name = mask_name.split('.')[0] + '.jpg'
         image = cv2.imread(os.path.join(self.images_path, image_name))
-        mask = cv2.imread(os.path.join(self.masks_path, image_name), 0)
+        mask = cv2.imread(os.path.join(self.masks_path, mask_name))[:,:,2]
         # resize image and mask
         if self.resize:
             image = cv2.resize(image, self.resize)
@@ -54,9 +54,9 @@ class BagDataset(Dataset):
         return image, mask
 
     def maks_preprocess(self, mask):
-        mask = (mask/255).astype('uint8')
+        mask = (mask/128).astype('uint8')
         buf = np.zeros((2, ) + mask.shape)
-        buf[0, mask==1], buf[1, mask==0] = 1, 1
+        buf[0, mask==0], buf[1, mask==1] = 1, 1
         assert np.sum(buf, axis = 0).all() == 1
         buf = torch.tensor(buf, dtype = torch.float)
         return buf
@@ -66,10 +66,10 @@ if __name__ =='__main__':
 
     from torch.utils.data import DataLoader, random_split
     
-    bag = BagDataset()
-    train_size = int(0.9 * len(bag))
-    test_size = len(bag) - train_size
-    train_dataset, test_dataset = random_split(bag, [train_size, test_size])
+    zebra_laneline = ZebraLanelineDataset()
+    train_size = int(0.9 * len(zebra_laneline))
+    test_size = len(zebra_laneline) - train_size
+    train_dataset, test_dataset = random_split(zebra_laneline, [train_size, test_size])
     train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True, num_workers=4)
     test_dataloader = DataLoader(test_dataset, batch_size=4, shuffle=True, num_workers=4)
 

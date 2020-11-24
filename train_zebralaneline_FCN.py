@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader, random_split
 import visdom
 
-from dataset.BagDataset import BagDataset
+from dataset.ZebraLanelineDataset import ZebraLanelineDataset
 from models.FCN import FCNs, VGGNet
 
 
@@ -22,7 +22,7 @@ criterion = torch.nn.BCELoss().to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.7)
 
 # data loader
-dataset = BagDataset()
+dataset = ZebraLanelineDataset()
 test_size = int(0.1 * len(dataset))
 train_size = len(dataset) - test_size
 train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
@@ -69,6 +69,7 @@ def train(epoch_num=50):
         # start test 
         test_loss = 0
         model.eval()
+        test_start_time = time.time()
         with torch.no_grad():
             for index, (image, mask) in enumerate(test_dataloader):
                 image, mask = image.to(device), mask.to(device)
@@ -93,9 +94,9 @@ def train(epoch_num=50):
 
         # count time
         end_time = time.time()
+        print('epoch {}, mean train loss = {}, mean test loss = {}, average inference time = {}, sum time = {}'
+                .format(epoch, train_loss/len(train_dataloader), test_loss/len(test_dataloader), (end_time - test_start_time)/len(test_dataloader), end_time - start_time))
         start_time = end_time
-        print('epoch {}, mean train loss = {}, mean test loss = {}, time = {}'
-                .format(epoch, train_loss/len(train_dataloader), test_loss/len(test_dataloader), end_time - start_time))
         
         # save model
         if np.mod(epoch, 5) == 0:
