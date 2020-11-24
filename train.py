@@ -1,9 +1,6 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import time
 import torch
-import torch.nn as nn
-import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 import visdom
 
@@ -21,8 +18,8 @@ vis = visdom.Visdom()
 vgg_model = VGGNet(requires_grad=True)
 model = FCNs(pretrained_net=vgg_model, n_class=2)
 model = model.to(device)
-criterion = nn.BCELoss().to(device)
-optimizer = optim.SGD(model.parameters(), lr=1e-2, momentum=0.7)
+criterion = torch.nn.BCELoss().to(device)
+optimizer = torch.optim.SGD(model.parameters(), lr=1e-2, momentum=0.7)
 
 # data loader
 dataset = BagDataset()
