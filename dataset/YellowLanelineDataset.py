@@ -18,11 +18,11 @@ class YellowLanelineDataset(Dataset):
     def __init__(self, resize = (160, 320)):
         # set path
         self.project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.data_paths = [ '/home/chenyp/dataset/laneline_1_voc_202101041129/pool', 
-                            '/home/chenyp/dataset/laneline_2_voc_202101071904/pool', 
-                            '/home/chenyp/dataset/laneline_3_voc_202101111451/pool', 
+        self.data_paths = [ '/home/chenyp/dataset/laneline_1_voc_202101201651/pool', 
+                            '/home/chenyp/dataset/laneline_2_voc_202101201652/pool', 
+                            '/home/chenyp/dataset/laneline_3_voc_202101201652/pool', 
                             '/home/chenyp/dataset/laneline_4_voc_202101111452/pool',
-                            '/home/chenyp/dataset/laneline_5_voc_202101131411/pool']
+                            '/home/chenyp/dataset/laneline_5_voc_202101201654/pool']
         self.images_paths = [os.path.join(data_path, 'raw') for data_path in self.data_paths]
         self.masks_paths = [os.path.join(data_path, 'mask_class') for data_path in self.data_paths]
         # set images and masks name list
@@ -44,7 +44,7 @@ class YellowLanelineDataset(Dataset):
         print(len(self.images_list))
         # set transform
         self.resize = resize
-        self.images_transform = transforms.Compose([transforms.Resize(size = self.resize), transforms.ColorJitter(brightness=0.3,contrast=0.1,saturation=0.1,hue=0.05), transforms.ToTensor()])
+        self.images_transform = transforms.Compose([transforms.Resize(size = self.resize), transforms.ColorJitter(brightness=0.5,contrast=0.2,saturation=0.2,hue=0.1), transforms.ToTensor()])
         #self.images_transform = transforms.Compose([transforms.Resize(size = self.resize), transforms.ToTensor()])
         self.masks_transform = None
 

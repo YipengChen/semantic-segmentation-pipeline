@@ -150,6 +150,82 @@ class FCNs(nn.Module):
 
         return score  
 
+class FCNs_s_v1(nn.Module):
+
+    def __init__(self, pretrained_net, pretrained_net_channel, n_class):
+        super().__init__()
+        self.n_class = n_class
+        self.pretrained_net = pretrained_net
+        self.pretrained_net_channel = pretrained_net_channel
+        self.channels = [self.pretrained_net_channel, int(self.pretrained_net_channel/2), int(self.pretrained_net_channel/4), int(self.pretrained_net_channel/8)]
+        self.relu    = nn.ReLU(inplace=True)
+        self.deconv1 = nn.ConvTranspose2d(self.channels[0], self.channels[0], kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+        self.bn1     = nn.BatchNorm2d(self.channels[0])
+        self.deconv2 = nn.ConvTranspose2d(self.channels[0], self.channels[1], kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+        self.bn2     = nn.BatchNorm2d(self.channels[1])
+        self.deconv3 = nn.ConvTranspose2d(self.channels[1], self.channels[2], kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+        self.bn3     = nn.BatchNorm2d(self.channels[2])
+        self.deconv4 = nn.ConvTranspose2d(self.channels[2], self.channels[3], kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+        self.bn4     = nn.BatchNorm2d(self.channels[3])
+        self.classifier = nn.Conv2d(self.channels[3], n_class, kernel_size=1) 
+
+    def forward(self, x):
+        output = self.pretrained_net(x)
+        x4 = output['x4']  
+        x3 = output['x3']  
+        x2 = output['x2']  
+        x1 = output['x1']  
+
+        score = self.bn1(self.relu(self.deconv1(x4)))     
+        score = score + x3                                
+        score = self.bn2(self.relu(self.deconv2(score)))  
+        score = score + x2                                
+        score = self.bn3(self.relu(self.deconv3(score)))  
+        score = score + x1                                
+        score = self.bn4(self.relu(self.deconv4(score)))  
+        score = self.classifier(score)                    
+        return score
+
+class FCNs_s_v2(nn.Module):
+
+    def __init__(self, pretrained_net, pretrained_net_channel, n_class):
+        super().__init__()
+        self.n_class = n_class
+        self.pretrained_net = pretrained_net
+        self.pretrained_net_channel = pretrained_net_channel
+        self.channels = [self.pretrained_net_channel, int(self.pretrained_net_channel/2), int(self.pretrained_net_channel/4), int(self.pretrained_net_channel/8), int(self.pretrained_net_channel/16)]
+        self.relu    = nn.ReLU(inplace=True)
+        self.deconv1 = nn.ConvTranspose2d(self.channels[0], self.channels[0], kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+        self.bn1     = nn.BatchNorm2d(self.channels[0])
+        self.deconv2 = nn.ConvTranspose2d(self.channels[0], self.channels[1], kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+        self.bn2     = nn.BatchNorm2d(self.channels[1])
+        self.deconv3 = nn.ConvTranspose2d(self.channels[1], self.channels[2], kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+        self.bn3     = nn.BatchNorm2d(self.channels[2])
+        self.deconv4 = nn.ConvTranspose2d(self.channels[2], self.channels[3], kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+        self.bn4     = nn.BatchNorm2d(self.channels[3])
+        self.deconv5 = nn.ConvTranspose2d(self.channels[3], self.channels[4], kernel_size=3, stride=2, padding=1, dilation=1, output_padding=1)
+        self.bn5     = nn.BatchNorm2d(self.channels[4])
+        self.classifier = nn.Conv2d(self.channels[4], n_class, kernel_size=1) 
+
+    def forward(self, x):
+        output = self.pretrained_net(x)
+        x5 = output['x5']  
+        x4 = output['x4']  
+        x3 = output['x3']  
+        x2 = output['x2']  
+        x1 = output['x1']  
+
+        score = self.bn1(self.relu(self.deconv1(x5)))     
+        score = score + x4                                
+        score = self.bn2(self.relu(self.deconv2(score)))  
+        score = score + x3                                
+        score = self.bn3(self.relu(self.deconv3(score)))  
+        score = score + x2                                
+        score = self.bn4(self.relu(self.deconv4(score)))
+        score = score + x1                                
+        score = self.bn5(self.relu(self.deconv5(score)))  
+        score = self.classifier(score)                    
+        return score
 
 class VGGNet(VGG):
     def __init__(self, pretrained=True, model='vgg16', requires_grad=True, remove_fc=True, show_params=False):
@@ -185,6 +261,8 @@ class VGGNet(VGG):
 
 
 ranges = {
+    'vgg_s_v1': ((0, 3), (3, 6),  (6, 11),  (11, 16)),
+    'vgg_s_v2': ((0, 3), (3, 6),  (6, 11),  (11, 16), (16, 21)),
     'vgg11': ((0, 3), (3, 6),  (6, 11),  (11, 16), (16, 21)),
     'vgg13': ((0, 5), (5, 10), (10, 15), (15, 20), (20, 25)),
     'vgg16': ((0, 5), (5, 10), (10, 17), (17, 24), (24, 31)),
@@ -194,6 +272,8 @@ ranges = {
 # Vgg-Net config 
 # Vgg网络结构配置
 cfg = {
+    'vgg_s_v1': [16, 'M', 32, 'M', 64, 64, 'M', 64, 64, 'M'],
+    'vgg_s_v2': [16, 'M', 32, 'M', 64, 64, 'M', 128, 128, 'M', 128, 128, 'M'],
     'vgg11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'vgg13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'vgg16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
@@ -258,4 +338,24 @@ Sequential(
 
 
 if __name__ == "__main__":
-    pass
+
+    import time
+
+    input_image = torch.randn(1, 3, 160, 320)
+    vgg_model = VGGNet(pretrained=False, model='vgg_s_v2', requires_grad=False)
+    model = FCNs_s_v2(pretrained_net=vgg_model, pretrained_net_channel = 128, n_class=2)
+    model.eval()
+
+    for i in range(5):
+        s_time = time.time()
+        output = model(input_image)
+        print('cpu inference time is {}'.format(time.time() - s_time))
+
+    if torch.cuda.is_available():
+        for i in range(500):
+            device = torch.device('cuda')
+            input_image = input_image.to(device)
+            model = model.to(device)
+            s_time = time.time()
+            output = model(input_image)
+            print('cuda inference time is {}'.format(time.time() - s_time))
